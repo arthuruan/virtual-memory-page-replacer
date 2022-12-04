@@ -107,7 +107,7 @@ void FIFO::run() {
 }
 
 void FIFO::printPageFaults() {
-    cout << "FIFO: " << pageFaults.size() << endl;
+    cout << "FIFO " << pageFaults.size() << endl;
 }
 // End FIFO
 
@@ -186,7 +186,7 @@ void OTM::run() {
 }
 
 void OTM::printPageFaults() {
-    cout << "OTM: " << pageFaults.size() << endl;
+    cout << "OTM " << pageFaults.size() << endl;
 }
 // End OTM
 
@@ -209,32 +209,34 @@ LRU::LRU(LoadData data) {
 }
 
 void LRU::run() {
-    vector<int> frameList;
-    vector<int> indexList;
+    vector<Frame> frames;
     int indexFrame = 0;
 
     for (int i = 0; i < pages.size(); i++) {
         int page = pages[i];
         bool pageFault = true;
 
-        for (int j = 0; j < frameList.size(); j++) {
-            if (page == frameList[j]) {
+        for (int j = 0; j < frames.size(); j++) {
+            if (page == frames[j].page) {
                 pageFault = false;
-                indexList[j] = i;
+                frames[j].index = i;
             }
         }
 
         if (pageFault) {
-            if (frameList.size() < numberOfFrames) {
-                frameList.push_back(page);
-                indexList.push_back(i);
+            if (frames.size() < numberOfFrames) {
+                Frame newFrame;
+                newFrame.page = page;
+                newFrame.index = i;
+
+                frames.push_back(newFrame);
             } else {
                 int index = 0;
                 int maxIndex = 0;
                 int maxCount = 0;
 
-                for (int j = 0; j < indexList.size(); j++) {
-                    int count = i - indexList[j];
+                for (int j = 0; j < frames.size(); j++) {
+                    int count = i - frames[j].index;
 
                     if (count > maxCount) {
                         maxCount = count;
@@ -242,8 +244,8 @@ void LRU::run() {
                     }
                 }
 
-                frameList[maxIndex] = page;
-                indexList[maxIndex] = i;
+                frames[maxIndex].page = page;
+                frames[maxIndex].index = i;
             }
 
             pageFaults.push_back(page);
@@ -252,7 +254,7 @@ void LRU::run() {
 }
 
 void LRU::printPageFaults() {
-    cout << "LRU: " << pageFaults.size() << endl;
+    cout << "LRU " << pageFaults.size() << endl;
 }
 // End LRU
 
