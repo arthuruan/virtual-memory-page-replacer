@@ -188,19 +188,88 @@ void OTM::run() {
 void OTM::printPageFaults() {
     cout << "OTM: " << pageFaults.size() << endl;
 }
-
 // End OTM
 
-int main (void) {
-    LoadData loadData("./instances/instance-1.txt");
+// Start LRU
+class LRU {
+    private:
+        int numberOfFrames;
+        vector<int> pages;
+        vector<int> pageFaults;
 
-    FIFO fifo(loadData);
+    public:
+        LRU(LoadData data);
+        void run();
+        void printPageFaults();
+};
+
+LRU::LRU(LoadData data) {
+    numberOfFrames = data.getNumberOfFrames();
+    pages = data.getPages();
+}
+
+void LRU::run() {
+    vector<int> frameList;
+    vector<int> indexList;
+    int indexFrame = 0;
+
+    for (int i = 0; i < pages.size(); i++) {
+        int page = pages[i];
+        bool pageFault = true;
+
+        for (int j = 0; j < frameList.size(); j++) {
+            if (page == frameList[j]) {
+                pageFault = false;
+                indexList[j] = i;
+            }
+        }
+
+        if (pageFault) {
+            if (frameList.size() < numberOfFrames) {
+                frameList.push_back(page);
+                indexList.push_back(i);
+            } else {
+                int index = 0;
+                int maxIndex = 0;
+                int maxCount = 0;
+
+                for (int j = 0; j < indexList.size(); j++) {
+                    int count = i - indexList[j];
+
+                    if (count > maxCount) {
+                        maxCount = count;
+                        maxIndex = j;
+                    }
+                }
+
+                frameList[maxIndex] = page;
+                indexList[maxIndex] = i;
+            }
+
+            pageFaults.push_back(page);
+        }
+    }
+}
+
+void LRU::printPageFaults() {
+    cout << "LRU: " << pageFaults.size() << endl;
+}
+// End LRU
+
+int main (void) {
+    LoadData data("./instances/instance-1.txt");
+
+    FIFO fifo(data);
     fifo.run();
     fifo.printPageFaults();
 
-    OTM otm(loadData);
+    OTM otm(data);
     otm.run();
     otm.printPageFaults();
+
+    LRU lru(data);
+    lru.run();
+    lru.printPageFaults();
 
     return 0;
 }
