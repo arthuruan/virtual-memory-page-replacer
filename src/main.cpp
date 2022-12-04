@@ -7,14 +7,14 @@ using namespace std;
 // Start LoadData
 class LoadData {
     private:
-        int frames;
+        int numberOfFrames;
         vector<int> pages;
 
     public:
         LoadData();
         LoadData(string path);
 
-        int getFrames();
+        int getNumberOfFrames();
         vector<int> getPages();
 
         void printData();
@@ -26,7 +26,7 @@ LoadData::LoadData(string pathParam) {
 
     if (myfile.is_open()) {
 
-        myfile >> frames;
+        myfile >> numberOfFrames;
 
         while (myfile.good()) {
             int page;
@@ -40,8 +40,8 @@ LoadData::LoadData(string pathParam) {
     } else cout << "Unable to open file in path" << pathParam;
 }
 
-int LoadData::getFrames() {
-    return frames;
+int LoadData::getNumberOfFrames() {
+    return numberOfFrames;
 }
 
 vector<int> LoadData::getPages() {
@@ -49,7 +49,7 @@ vector<int> LoadData::getPages() {
 }
 
 void LoadData::printData() {
-    cout << "Frames: " << frames << endl;
+    cout << "Number of Frames: " << numberOfFrames << endl;
 
     for (int i = 0; i < pages.size(); i++) {
         cout << "Page " << i << ": " << pages[i] << endl;
@@ -60,7 +60,7 @@ void LoadData::printData() {
 // Start FIFO
 class FIFO {
     private:
-        int frames;
+        int numberOfFrames;
         vector<int> pages;
         vector<int> pageFaults;
 
@@ -71,7 +71,7 @@ class FIFO {
 };
 
 FIFO::FIFO(LoadData data) {
-    frames = data.getFrames();
+    numberOfFrames = data.getNumberOfFrames();
     pages = data.getPages();
 }
 
@@ -90,13 +90,13 @@ void FIFO::run() {
         }
 
         if (pageFault) {
-            if (frameList.size() < frames) {
+            if (frameList.size() < numberOfFrames) {
                 frameList.push_back(page);
             } else {
                 frameList[indexFrame] = page;
                 indexFrame++;
 
-                if (indexFrame == frames) {
+                if (indexFrame == numberOfFrames) {
                     indexFrame = 0;
                 }
             }
@@ -107,14 +107,89 @@ void FIFO::run() {
 }
 
 void FIFO::printPageFaults() {
-    cout << "Page Faults: " << pageFaults.size() << endl;
-
-    for (int i = 0; i < pageFaults.size(); i++) {
-        cout << "Page Fault " << i << ": " << pageFaults[i] << endl;
-    }
+    cout << "FIFO: " << pageFaults.size() << endl;
 }
 // End FIFO
 
+// Sart OTM
+class OTM {
+    private:
+        int numberOfFrames;
+        vector<int> pages;
+        vector<int> pageFaults;
+
+    public:
+        OTM(LoadData data);
+        void run();
+        void printPageFaults();
+};
+
+OTM::OTM(LoadData data) {
+    numberOfFrames = data.getNumberOfFrames();
+    pages = data.getPages();
+}
+
+struct Frame {
+    int page;
+    int index;
+};
+
+void OTM::run() {
+    vector<Frame> frameList;
+    int indexFrame = 0;
+
+    for (int i = 0; i < pages.size(); i++) {
+        int page = pages[i];
+        bool pageFault = true;
+
+        for (int j = 0; j < frameList.size(); j++) {
+            if (page == frameList[j].page) {
+                pageFault = false;
+            }
+        }
+
+        if (pageFault) {
+            if (frameList.size() < numberOfFrames) {
+                Frame newFrame;
+                newFrame.page = page;
+                newFrame.index = i;
+
+                frameList.push_back(newFrame);
+            } else {
+                int index = 0;
+                int maxIndex = 0;
+                int maxCount = 0;
+
+                for (int j = 0; j < frameList.size(); j++) {
+                    int count = 0;
+
+                    for (int k = i + 1; k < pages.size(); k++) {
+                        if (frameList[j].page == pages[k]) {
+                            break;
+                        }
+                        count++;
+                    }
+
+                    if (count > maxCount) {
+                        maxCount = count;
+                        maxIndex = j;
+                    }
+                }
+
+                frameList[maxIndex].page = page;
+                frameList[maxIndex].index = i;
+            }
+
+            pageFaults.push_back(page);
+        }
+    }
+}
+
+void OTM::printPageFaults() {
+    cout << "OTM: " << pageFaults.size() << endl;
+}
+
+// End OTM
 
 int main (void) {
     LoadData loadData("./instances/instance-1.txt");
@@ -122,6 +197,10 @@ int main (void) {
     FIFO fifo(loadData);
     fifo.run();
     fifo.printPageFaults();
+
+    OTM otm(loadData);
+    otm.run();
+    otm.printPageFaults();
 
     return 0;
 }
